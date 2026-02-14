@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Costo de Espejo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" id="app-container">
+        <div class="actions">
+            <a href="clients.html" id="nav-clients"><button type="button">Ir a Clientes</button></a>
+            <a href="admin.html" id="nav-admin"><button type="button">Usuarios</button></a>
+            <button type="button" id="logout-btn">Cerrar sesión</button>
+        </div>
+        <h1>Calculadora de Costo de Espejo</h1>
+        <form id="calculator-form">
+            <div class="form-group">
+                <label for="width">Ancho (cm):</label>
+                <input type="number" id="width" required min="1" placeholder="ej. 100">
+            </div>
+
+            <div class="form-group">
+                <label for="height">Alto (cm):</label>
+                <input type="number" id="height" required min="1" placeholder="ej. 200">
+            </div>
+
+            <div class="form-group">
+                <label for="thickness">Espesor:</label>
+                <select id="thickness">
+                    <option value="3">3 mm</option>
+                    <option value="4" selected>4 mm</option>
+                    <option value="5">5 mm</option>
+                    <option value="6">6 mm</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="base">Tipo de base para colgar:</label>
+                <select id="base">
+                    <option value="glue" id="base-glue-option">Pegamento</option>
+                    <option value="hooks" id="base-hooks-option">Ganchos simples</option>
+                    <option value="aluminum" id="base-aluminum-option">Base de aluminio</option>
+                    <option value="wood_frame" id="base-wood-option">Marco de madera</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="led-count">Número de tiras LED (5 m cada una):</label>
+                <input type="number" id="led-count" min="0" value="0">
+            </div>
+
+            <div class="form-group">
+                <label for="cuts-count">Número de cortes:</label>
+                <input type="number" id="cuts-count" min="0" value="0">
+            </div>
+
+            <div class="form-group">
+                <label>Extras (costo por metro lineal):</label>
+                <label class="checkbox-group" style="font-weight: normal;">
+                    <input type="checkbox" id="extra-arenado"> <span id="label-extra-arenado">Arenado</span>
+                </label>
+                <label class="checkbox-group" style="font-weight: normal;">
+                    <input type="checkbox" id="extra-canto"> <span id="label-extra-canto">Canto pulido</span>
+                </label>
+                <label class="checkbox-group" style="font-weight: normal;">
+                    <input type="checkbox" id="extra-biselado"> <span id="label-extra-biselado">Biselado</span>
+                </label>
+                <label class="checkbox-group" style="font-weight: normal;">
+                    <input type="checkbox" id="extra-marco"> <span id="label-extra-marco">Marco</span>
+                </label>
+            </div>
+
+            <details class="config-section">
+                <summary>Configuración</summary>
+                <div class="form-group">
+                    <label>Precios del vidrio (por m²):</label>
+                    <input type="number" id="price-3" step="0.01" min="0" placeholder="3 mm">
+                    <input type="number" id="price-4" step="0.01" min="0" placeholder="4 mm">
+                    <input type="number" id="price-5" step="0.01" min="0" placeholder="5 mm">
+                    <input type="number" id="price-6" step="0.01" min="0" placeholder="6 mm">
+                </div>
+                <div class="form-group">
+                    <label>Costos de base:</label>
+                    <input type="number" id="base-glue-price" step="0.01" min="0" placeholder="Pegamento (fijo)">
+                    <input type="number" id="base-hooks-price" step="0.01" min="0" placeholder="Ganchos simples (fijo)">
+                    <input type="number" id="base-aluminum-price" step="0.01" min="0" placeholder="Base de aluminio (fijo)">
+                    <input type="number" id="base-wood-price" step="0.01" min="0" placeholder="Marco de madera ($/m)">
+                </div>
+                <div class="form-group">
+                    <label>Nombres de base:</label>
+                    <input type="text" id="base-glue-label" placeholder="Nombre Pegamento">
+                    <input type="text" id="base-hooks-label" placeholder="Nombre Ganchos simples">
+                    <input type="text" id="base-aluminum-label" placeholder="Nombre Base de aluminio">
+                    <input type="text" id="base-wood-label" placeholder="Nombre Marco de madera">
+                </div>
+                <div class="form-group">
+                    <label>LED:</label>
+                    <input type="number" id="led-strip-cost" step="0.01" min="0" placeholder="Costo por tira (5 m)">
+                    <input type="number" id="led-base-cost" step="0.01" min="0" placeholder="Costo base LED">
+                </div>
+                <div class="form-group">
+                    <label>Extras ($/m):</label>
+                    <input type="number" id="extra-arenado-price" step="0.01" min="0" placeholder="Arenado ($/m)">
+                    <input type="number" id="extra-canto-price" step="0.01" min="0" placeholder="Canto pulido ($/m)">
+                    <input type="number" id="extra-biselado-price" step="0.01" min="0" placeholder="Biselado ($/m)">
+                    <input type="number" id="extra-marco-price" step="0.01" min="0" placeholder="Marco ($/m)">
+                </div>
+                <div class="form-group">
+                    <label>Nombres de extras:</label>
+                    <input type="text" id="extra-arenado-label" placeholder="Nombre Arenado">
+                    <input type="text" id="extra-canto-label" placeholder="Nombre Canto pulido">
+                    <input type="text" id="extra-biselado-label" placeholder="Nombre Biselado">
+                    <input type="text" id="extra-marco-label" placeholder="Nombre Marco">
+                </div>
+                <div class="form-group">
+                    <label>Cortes y ganancia:</label>
+                    <input type="number" id="cut-cost" step="0.01" min="0" placeholder="Costo por corte">
+                    <input type="number" id="profit-multiplier" step="0.1" min="0" placeholder="Multiplicador de ganancia">
+                </div>
+                <button type="button" id="save-config">Guardar configuración</button>
+            </details>
+
+            <button type="button" onclick="calculateCost()">Calcular costo</button>
+        </form>
+
+        <div id="result" class="result hidden">
+            <h2>Costo estimado: $<span id="total-cost">0.00</span></h2>
+            <div class="breakdown">
+                <p>Costo del vidrio: $<span id="glass-cost">0.00</span></p>
+                <p>Costo de la base: $<span id="base-cost">0.00</span></p>
+                <p>Costo de LED: $<span id="led-cost">0.00</span></p>
+                <p>Costo de cortes: $<span id="cuts-cost">0.00</span></p>
+                <p>Costo de extras: $<span id="extras-cost">0.00</span></p>
+            </div>
+            <div class="sell-price-section">
+                <h3>Precio de venta sugerido: $<span id="sell-price">0.00</span></h3>
+                <p>Costo de fabricación: $<span id="manufacturing-cost">0.00</span></p>
+                <p class="profit-info">Ganancia (1.5x del costo): $<span id="profit">0.00</span></p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
