@@ -14,40 +14,7 @@
             <button type="button" id="logout-btn">Cerrar sesión</button>
         </div>
         <h1>Clientes</h1>
-        <div class="actions">
-            <button type="button" id="client-add-btn-top">Añadir cliente</button>
-        </div>
-        <form id="client-form">
-            <div class="form-group">
-                <label for="client-nombre">Nombre:</label>
-                <input type="text" id="client-nombre" required placeholder="Nombre del cliente">
-            </div>
-            <div class="form-group">
-                <label for="client-telefono">Teléfono:</label>
-                <input type="tel" id="client-telefono" placeholder="Teléfono">
-            </div>
-            <div class="form-group">
-                <label for="client-direccion">Dirección:</label>
-                <input type="text" id="client-direccion" placeholder="Dirección">
-            </div>
-            <div class="form-group">
-                <label for="client-descripcion">Descripción del producto:</label>
-                <textarea id="client-descripcion" rows="3" placeholder="Descripción"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="client-costo">Costo:</label>
-                <input type="number" id="client-costo" step="0.01" min="0" value="0">
-            </div>
-            <div class="form-group">
-                <label for="client-anticipo">Anticipo:</label>
-                <input type="number" id="client-anticipo" step="0.01" min="0" value="0">
-            </div>
-            <div class="form-group">
-                <label for="client-adeudo">Adeudo:</label>
-                <input type="number" id="client-adeudo" step="0.01" min="0" value="0" readonly>
-            </div>
-            <button type="button" id="client-save-btn">Añadir cliente</button>
-        </form>
+        <p>Consulta aquí los clientes y cotizaciones guardados desde la calculadora.</p>
         <div class="table-wrap">
             <table class="table" id="clients-table">
                 <thead>
@@ -60,7 +27,6 @@
                         <th>Anticipo</th>
                         <th>Adeudo</th>
                         <th>Estado</th>
-                        <th></th>
                     </tr>
                 </thead>
                 <tbody id="clients-tbody"></tbody>
@@ -68,14 +34,5 @@
         </div>
     </div>
     <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const costo = document.getElementById('client-costo');
-            const anticipo = document.getElementById('client-anticipo');
-            if (costo && anticipo && (!anticipo.value || anticipo.value === '0')) {
-                anticipo.value = ((parseFloat(costo.value || '0') || 0) * 0.5).toFixed(2);
-            }
-        });
-    </script>
     </body>
     </html>
