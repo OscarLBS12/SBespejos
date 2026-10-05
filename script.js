@@ -449,6 +449,39 @@ async function deleteClient(id) {
     renderClients();
 }
 
+async function addClientAdvance(id) {
+    const item = getClients().find(client => client.id === id);
+    if (!item) return;
+    const balance = Math.max(0, Math.round(Number(item.costo || 0) * 100) - Math.round(Number(item.anticipo || 0) * 100));
+    if (!balance) return;
+    const value = prompt('Monto del anticipo adicional (MXN). Adeudo: $' + (balance / 100).toFixed(2));
+    if (value === null) return;
+    if (!/^\d+(?:[.,]\d{1,2})?$/.test(value.trim())) {
+        alert('Ingresa un monto positivo con máximo dos decimales.');
+        return;
+    }
+    const amount = Math.round(Number(value.trim().replace(',', '.')) * 100);
+    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > balance) {
+        alert('El anticipo debe ser mayor a cero y no superar el adeudo.');
+        return;
+    }
+    if (!await authorizeClientAction('Agregar anticipo')) return;
+    const list = getClients();
+    const current = list.find(client => client.id === id);
+    if (!current) return;
+    const cost = Math.round(Number(current.costo || 0) * 100);
+    const paid = Math.round(Number(current.anticipo || 0) * 100);
+    if (amount > cost - paid) {
+        alert('El adeudo cambió. Revisa el saldo e intenta de nuevo.');
+        return;
+    }
+    current.anticipo = (paid + amount) / 100;
+    current.adeudo = (cost - paid - amount) / 100;
+    current.pagado = current.adeudo === 0;
+    setClients(list);
+    renderClients();
+}
+
 function renderClients() {
     const tbody = document.getElementById('clients-tbody');
     if (!tbody) return;
@@ -482,7 +515,10 @@ function renderClients() {
             });
             tdAct.appendChild(button);
         };
-        if (!isPaid) addAction('Pago completo', '#198754', payInFull);
+        if (!isPaid) {
+            addAction('Agregar anticipo', '#0d6efd', addClientAdvance);
+            addAction('Pago completo', '#198754', payInFull);
+        }
         addAction('Eliminar', '#dc3545', deleteClient);
         tr.appendChild(tdNom);
         tr.appendChild(tdTel);
