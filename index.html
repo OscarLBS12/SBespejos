@@ -87,7 +87,21 @@
                 </label>
             </div>
 
-            <button type="button" id="create-quote-btn" class="quote-btn" onclick="createQuote()">Agregar espejo y crear cotización</button>
+            <div class="form-group">
+                <label for="quote-quantity">Cantidad de espejos de este modelo:</label>
+                <input type="number" id="quote-quantity" min="1" step="1" value="1">
+            </div>
+            <button type="button" id="add-mirror-quote-btn" onclick="addMirrorToQuote()">Agregar espejo a la cotización</button>
+            <section id="quote-draft" class="hidden">
+                <h2>Espejos de la cotización</h2>
+                <p>Agrega cada modelo antes de crear la cotización.</p>
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>Cantidad</th><th>Descripción</th><th>Precio unitario</th><th>Importe</th><th></th></tr></thead>
+                    <tbody id="quote-items-tbody"></tbody>
+                </table></div>
+                <p><strong>Total: $<span id="quote-items-total">0.00</span> MXN</strong></p>
+                <button type="button" id="create-quote-btn" class="quote-btn" onclick="createQuote()">Crear cotización</button>
+            </section>
 
             <details class="config-section">
                 <summary>Configuración</summary>
