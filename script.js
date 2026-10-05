@@ -284,7 +284,10 @@ async function syncCloudDown() {
             cloudFetch('config').catch(() => null)
         ]);
         if (users) localStorage.setItem('mirrorUsers', JSON.stringify(users));
-        if (clients) localStorage.setItem('mirrorClients', JSON.stringify(clients));
+        if (clients) {
+            localStorage.setItem('mirrorClients', JSON.stringify(clients));
+            renderClients();
+        }
         if (config) localStorage.setItem('mirrorConfig', JSON.stringify(config));
     } catch {}
 }
@@ -362,40 +365,7 @@ function ensureClientsUI() {
         cli.className = 'tab-section';
         cli.innerHTML = `
             <h1>Clientes</h1>
-            <div class="actions">
-                <button type="button" id="client-add-btn-top">Añadir cliente</button>
-            </div>
-            <form id="client-form">
-                <div class="form-group">
-                    <label for="client-nombre">Nombre:</label>
-                    <input type="text" id="client-nombre" required placeholder="Nombre del cliente">
-                </div>
-                <div class="form-group">
-                    <label for="client-telefono">Teléfono:</label>
-                    <input type="tel" id="client-telefono" placeholder="Teléfono">
-                </div>
-                <div class="form-group">
-                    <label for="client-direccion">Dirección:</label>
-                    <input type="text" id="client-direccion" placeholder="Dirección">
-                </div>
-                <div class="form-group">
-                    <label for="client-descripcion">Descripción del producto:</label>
-                    <textarea id="client-descripcion" rows="3" placeholder="Descripción"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="client-costo">Costo:</label>
-                    <input type="number" id="client-costo" step="0.01" min="0" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="client-anticipo">Anticipo:</label>
-                    <input type="number" id="client-anticipo" step="0.01" min="0" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="client-adeudo">Adeudo:</label>
-                    <input type="number" id="client-adeudo" step="0.01" min="0" value="0" readonly>
-                </div>
-                <button type="button" id="client-save-btn">Añadir cliente</button>
-            </form>
+            <p>Consulta aquí los clientes y cotizaciones guardados desde la calculadora.</p>
             <div class="table-wrap">
                 <table class="table" id="clients-table">
                     <thead>
@@ -407,7 +377,7 @@ function ensureClientsUI() {
                             <th>Costo</th>
                             <th>Anticipo</th>
                             <th>Adeudo</th>
-                            <th></th>
+                            <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody id="clients-tbody"></tbody>
@@ -455,26 +425,6 @@ function renderClients() {
         tdEstado.textContent = isPaid ? 'Pagado' : 'Pendiente';
         tdEstado.style.fontWeight = '600';
         tdEstado.style.color = isPaid ? '#2e7d32' : '#b02a37';
-        const tdAct = document.createElement('td');
-        if (!isPaid) {
-            const payBtn = document.createElement('button');
-            payBtn.textContent = 'Pago completo';
-            payBtn.style.background = '#198754';
-            payBtn.style.marginRight = '0.5rem';
-            payBtn.addEventListener('click', () => {
-                payInFull(item.id);
-            });
-            tdAct.appendChild(payBtn);
-        }
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Eliminar';
-        delBtn.style.background = '#dc3545';
-        delBtn.addEventListener('click', () => {
-            const list = getClients().filter(x => x.id !== item.id);
-            setClients(list);
-            renderClients();
-        });
-        tdAct.appendChild(delBtn);
         tr.appendChild(tdNom);
         tr.appendChild(tdTel);
         tr.appendChild(tdDir);
@@ -483,7 +433,6 @@ function renderClients() {
         tr.appendChild(tdAnt);
         tr.appendChild(tdAde);
         tr.appendChild(tdEstado);
-        tr.appendChild(tdAct);
         tbody.appendChild(tr);
     }
 }
