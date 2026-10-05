@@ -988,17 +988,18 @@ function nextQuoteFolio() {
     return 'COT-' + String(next).padStart(4, '0');
 }
 
-function createQuote() {
-    const nombre = document.getElementById('quote-client-name')?.value.trim() || '';
-    const telefono = document.getElementById('quote-client-phone')?.value.trim() || '';
-    const direccion = document.getElementById('quote-client-address')?.value.trim() || '';
+let quoteItems = [];
 
-    if (!nombre) {
-        alert('Ingresa el nombre del cliente antes de crear la cotización.');
-        document.getElementById('quote-client-name')?.focus();
-        return;
+function quoteMoney(value) {
+    return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function captureQuoteMirror() {
+    const quantity = Number(document.getElementById('quote-quantity')?.value || 1);
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+        alert('Ingresa una cantidad entera mayor a cero.');
+        return null;
     }
-
     // Always use the current mirror inputs, even if a previous result is visible.
     if (!calculateCost()) return;
 
@@ -1017,9 +1018,6 @@ function createQuote() {
     if (document.getElementById('extra-biselado')?.checked) extras.push(cfg.labels.extras.biselado);
     if (document.getElementById('extra-marco')?.checked) extras.push(cfg.labels.extras.marco);
 
-    const folio = nextQuoteFolio();
-    const now = new Date();
-    const fecha = now.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
     const descripcion = [
         'Espejo ' + width + ' x ' + height + ' cm',
         thickness + ' mm',
@@ -1028,25 +1026,81 @@ function createQuote() {
         extras.length ? 'Extras: ' + extras.join(', ') : ''
     ].filter(Boolean).join(' · ');
 
-    const clients = getClients();
-    const quote = {
-        id: Date.now() + '-' + Math.random().toString(36).slice(2),
-        nombre,
-        telefono,
-        direccion,
-        descripcion: folio + ' — ' + descripcion,
-        costo: sellPrice,
-        anticipo: 0,
-        adeudo: sellPrice,
-        pagado: false,
-        cotizacion: true,
-        folio,
-        fecha: now.toISOString(),
+
+    return {
+        cantidad: quantity,
+        descripcion,
+        precioUnitario: Math.round(sellPrice * 100) / 100,
+        importe: Math.round(sellPrice * 100) * quantity / 100,
         especificaciones: { width, height, thickness, baseLabel, ledCount, extras: [...extras] }
     };
+}
+
+function addMirrorToQuote() {
+    const item = captureQuoteMirror();
+    if (!item) return;
+    quoteItems.push(item);
+    renderQuoteItems();
+}
+
+function renderQuoteItems() {
+    const tbody = document.getElementById('quote-items-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    quoteItems.forEach((item, index) => {
+        const row = document.createElement('tr');
+        [item.cantidad, item.descripcion, '$' + quoteMoney(item.precioUnitario), '$' + quoteMoney(item.importe)].forEach(value => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+        const cell = document.createElement('td');
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = 'Quitar';
+        remove.addEventListener('click', () => { quoteItems.splice(index, 1); renderQuoteItems(); });
+        cell.appendChild(remove);
+        row.appendChild(cell);
+        tbody.appendChild(row);
+    });
+    document.getElementById('quote-items-total').textContent = quoteMoney(quoteItems.reduce((total, item) => total + Math.round(item.importe * 100), 0) / 100);
+    document.getElementById('quote-draft').classList.toggle('hidden', !quoteItems.length);
+}
+
+function createQuote() {
+    const nombre = document.getElementById('quote-client-name')?.value.trim() || '';
+    const telefono = document.getElementById('quote-client-phone')?.value.trim() || '';
+    const direccion = document.getElementById('quote-client-address')?.value.trim() || '';
+    if (!nombre) {
+        alert('Ingresa el nombre del cliente antes de crear la cotización.');
+        document.getElementById('quote-client-name')?.focus();
+        return;
+    }
+    if (!quoteItems.length) {
+        alert('Agrega al menos un espejo a la cotización.');
+        return;
+    }
+    const items = quoteItems.map(item => ({ ...item, especificaciones: { ...item.especificaciones, extras: [...item.especificaciones.extras] } }));
+    const total = items.reduce((sum, item) => sum + Math.round(item.importe * 100), 0) / 100;
+    const quoteWindow = window.open('', '_blank');
+    if (!quoteWindow) {
+        alert('Permite ventanas emergentes para abrir la cotización.');
+        return;
+    }
+    const folio = nextQuoteFolio();
+    const quote = {
+        id: Date.now() + '-' + Math.random().toString(36).slice(2),
+        nombre, telefono, direccion,
+        descripcion: folio + ' — ' + items.map(item => item.cantidad + ' × ' + item.descripcion).join('; '),
+        costo: total, anticipo: 0, adeudo: total, pagado: false,
+        cotizacion: true, folio, fecha: new Date().toISOString(), partidas: items
+    };
+    const clients = getClients();
     clients.push(quote);
     setClients(clients);
-    openSavedQuote(quote);
+    openSavedQuote(quote, quoteWindow);
+    quoteItems = [];
+    renderQuoteItems();
 }
 
 function reprintQuote(id) {
@@ -1058,7 +1112,7 @@ function reprintQuote(id) {
     openSavedQuote(quote);
 }
 
-function openSavedQuote(quote) {
+function openSavedQuote(quote, existingWindow) {
     const { nombre, telefono, direccion } = quote;
     const folio = quote.folio || 'Cotización';
     const date = quote.fecha ? new Date(quote.fecha) : null;
@@ -1067,20 +1121,19 @@ function openSavedQuote(quote) {
         : 'Fecha original no registrada';
     const sellPrice = Number(quote.costo || 0);
     const specs = quote.especificaciones;
-    const detailRows = specs
-        ? [
-            ['Medidas', specs.width + ' × ' + specs.height + ' cm'],
-            ['Espesor', specs.thickness + ' mm'],
-            ['Base', specs.baseLabel],
-            ['LED', specs.ledCount > 0 ? specs.ledCount + ' tira(s)' : 'Sin LED'],
-            ['Extras', specs.extras?.length ? specs.extras.join(', ') : 'Sin extras']
-        ]
-        : [['Descripción', quote.descripcion || 'Sin descripción']];
-    const detailsHtml = detailRows.map(([label, value]) =>
-        '<tr><td>' + escapeQuoteHtml(label) + '</td><td>' + escapeQuoteHtml(value) + '</td></tr>'
-    ).join('');
-
-    const quoteWindow = window.open('', '_blank');
+    const legacyDescription = specs ? [
+        'Espejo ' + specs.width + ' × ' + specs.height + ' cm',
+        specs.thickness + ' mm', specs.baseLabel,
+        specs.ledCount > 0 ? specs.ledCount + ' tira(s) LED' : 'Sin LED',
+        specs.extras?.length ? 'Extras: ' + specs.extras.join(', ') : ''
+    ].filter(Boolean).join(' · ') : quote.descripcion || 'Sin descripción';
+    const items = quote.partidas?.length ? quote.partidas : [{
+        cantidad: 1, descripcion: legacyDescription, precioUnitario: sellPrice, importe: sellPrice
+    }];
+    const detailsHtml = items.map(item => '<tr><td>' + escapeQuoteHtml(item.cantidad) +
+        '</td><td>' + escapeQuoteHtml(item.descripcion) + '</td><td>$' + quoteMoney(item.precioUnitario) +
+        '</td><td>$' + quoteMoney(item.importe) + '</td></tr>').join('');
+    const quoteWindow = existingWindow || window.open('', '_blank');
     if (!quoteWindow) {
         alert('El navegador bloqueó la ventana de la cotización. Permite ventanas emergentes e inténtalo de nuevo.');
         return;
@@ -1118,7 +1171,7 @@ table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;pa
         ${direccion ? '<strong>Dirección:</strong> ' + escapeQuoteHtml(direccion) : ''}
     </div>
     <table>
-        <thead><tr><th>Concepto</th><th>Detalle</th></tr></thead>
+        <thead><tr><th>Cantidad</th><th>Descripción</th><th>Precio unitario</th><th>Importe</th></tr></thead>
         <tbody>
             ${detailsHtml}
         </tbody>
