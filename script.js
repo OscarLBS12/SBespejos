@@ -378,6 +378,7 @@ function ensureClientsUI() {
                             <th>Anticipo</th>
                             <th>Adeudo</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="clients-tbody"></tbody>
@@ -406,6 +407,48 @@ function setClients(arr) {
     cloudPut('clients', arr);
 }
 
+
+function requestClientActionPassword(action) {
+    return new Promise(resolve => {
+        const dialog = document.createElement('dialog');
+        dialog.innerHTML = '<form method="dialog"><h2></h2><p>Confirma con tu contraseña de inicio de sesión.</p><label>Contraseña <input type="password" autocomplete="current-password" required></label><div class="actions"><button type="button">Cancelar</button><button type="submit">Confirmar</button></div></form>';
+        dialog.querySelector('h2').textContent = action;
+        const input = dialog.querySelector('input');
+        let password = null;
+        dialog.querySelector('form').addEventListener('submit', () => { password = input.value; });
+        dialog.querySelector('button[type="button"]').addEventListener('click', () => dialog.close());
+        dialog.addEventListener('close', () => { dialog.remove(); resolve(password); }, { once: true });
+        document.body.appendChild(dialog);
+        dialog.showModal();
+        input.focus();
+    });
+}
+
+async function authorizeClientAction(action) {
+    const me = getCurrentUser();
+    if (!me || me.role !== 'admin') {
+        alert('Debes iniciar sesión como administrador.');
+        return false;
+    }
+    const password = await requestClientActionPassword(action);
+    if (password === null) return false;
+    const current = getCurrentUser();
+    const user = getUsers().find(u => u.username === me.username && u.role === 'admin');
+    if (!current || current.username !== me.username || current.role !== 'admin' ||
+        !user || !(await hashCandidates(me.username, password)).includes(user.passHash)) {
+        alert('Contraseña incorrecta. No se realizaron cambios.');
+        return false;
+    }
+    return true;
+}
+
+async function deleteClient(id) {
+    if (!await authorizeClientAction('Eliminar cliente')) return;
+    const list = getClients();
+    setClients(list.filter(item => item.id !== id));
+    renderClients();
+}
+
 function renderClients() {
     const tbody = document.getElementById('clients-tbody');
     if (!tbody) return;
@@ -425,6 +468,22 @@ function renderClients() {
         tdEstado.textContent = isPaid ? 'Pagado' : 'Pendiente';
         tdEstado.style.fontWeight = '600';
         tdEstado.style.color = isPaid ? '#2e7d32' : '#b02a37';
+        const tdAct = document.createElement('td');
+        const addAction = (label, color, action) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            button.style.background = color;
+            button.style.marginRight = '0.5rem';
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                try { await action(item.id); }
+                finally { button.disabled = false; }
+            });
+            tdAct.appendChild(button);
+        };
+        if (!isPaid) addAction('Pago completo', '#198754', payInFull);
+        addAction('Eliminar', '#dc3545', deleteClient);
         tr.appendChild(tdNom);
         tr.appendChild(tdTel);
         tr.appendChild(tdDir);
@@ -433,6 +492,7 @@ function renderClients() {
         tr.appendChild(tdAnt);
         tr.appendChild(tdAde);
         tr.appendChild(tdEstado);
+        tr.appendChild(tdAct);
         tbody.appendChild(tr);
     }
 }
@@ -514,7 +574,8 @@ function saveClient() {
     clearClientForm();
 }
 
-function payInFull(id) {
+async function payInFull(id) {
+    if (!await authorizeClientAction('Registrar pago completo')) return;
     const list = getClients();
     const idx = list.findIndex(x => x.id === id);
     if (idx >= 0) {
