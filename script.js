@@ -9,7 +9,7 @@ function calculateCost() {
 
     if (isNaN(widthCm) || isNaN(heightCm) || widthCm <= 0 || heightCm <= 0) {
         alert("Por favor ingresa dimensiones positivas válidas.");
-        return;
+        return false;
     }
 
     // Convert dimensions to meters for calculation
@@ -111,6 +111,7 @@ function calculateCost() {
     }
 
     document.getElementById('result').classList.remove('hidden');
+    return true;
 }
 
 const defaultConfig = {
@@ -951,11 +952,8 @@ function createQuote() {
         return;
     }
 
-    const result = document.getElementById('result');
-    if (!result || result.classList.contains('hidden')) {
-        alert('Primero calcula el costo del espejo.');
-        return;
-    }
+    // Always use the current mirror inputs, even if a previous result is visible.
+    if (!calculateCost()) return;
 
     const width = parseFloat(document.getElementById('width')?.value || '0') || 0;
     const height = parseFloat(document.getElementById('height')?.value || '0') || 0;
