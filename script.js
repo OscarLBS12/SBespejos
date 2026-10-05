@@ -1018,21 +1018,24 @@ function captureQuoteMirror() {
     if (document.getElementById('extra-biselado')?.checked) extras.push(cfg.labels.extras.biselado);
     if (document.getElementById('extra-marco')?.checked) extras.push(cfg.labels.extras.marco);
 
+    const detalles = document.getElementById('mirror-details')?.value.trim() || '';
     const descripcion = [
         'Espejo ' + width + ' x ' + height + ' cm',
         thickness + ' mm',
         baseLabel,
         ledCount > 0 ? ledCount + ' tira(s) LED' : '',
-        extras.length ? 'Extras: ' + extras.join(', ') : ''
+        extras.length ? 'Extras: ' + extras.join(', ') : '',
+        detalles ? 'Detalles: ' + detalles : ''
     ].filter(Boolean).join(' · ');
 
 
     return {
         cantidad: quantity,
         descripcion,
+        detalles,
         precioUnitario: Math.round(sellPrice * 100) / 100,
         importe: Math.round(sellPrice * 100) * quantity / 100,
-        especificaciones: { width, height, thickness, baseLabel, ledCount, extras: [...extras] }
+        especificaciones: { width, height, thickness, baseLabel, ledCount, extras: [...extras], detalles }
     };
 }
 
@@ -1040,6 +1043,8 @@ function addMirrorToQuote() {
     const item = captureQuoteMirror();
     if (!item) return;
     quoteItems.push(item);
+    const detailsInput = document.getElementById('mirror-details');
+    if (detailsInput) detailsInput.value = '';
     renderQuoteItems();
 }
 
@@ -1125,7 +1130,8 @@ function openSavedQuote(quote, existingWindow) {
         'Espejo ' + specs.width + ' × ' + specs.height + ' cm',
         specs.thickness + ' mm', specs.baseLabel,
         specs.ledCount > 0 ? specs.ledCount + ' tira(s) LED' : 'Sin LED',
-        specs.extras?.length ? 'Extras: ' + specs.extras.join(', ') : ''
+        specs.extras?.length ? 'Extras: ' + specs.extras.join(', ') : '',
+        specs.detalles ? 'Detalles: ' + specs.detalles : ''
     ].filter(Boolean).join(' · ') : quote.descripcion || 'Sin descripción';
     const items = quote.partidas?.length ? quote.partidas : [{
         cantidad: 1, descripcion: legacyDescription, precioUnitario: sellPrice, importe: sellPrice
@@ -1152,7 +1158,7 @@ body{font-family:Arial,sans-serif;color:#222;margin:0;background:#f2f2f2}
 .header{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #111;padding-bottom:18px;margin-bottom:28px}
 .brand{font-size:28px;font-weight:800;letter-spacing:1px}.muted{color:#666;font-size:14px}
 h1{font-size:22px;margin:0 0 6px}.client{background:#f7f7f7;padding:18px;margin-bottom:24px}
-table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#f5f5f5}
+table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#f5f5f5}td{white-space:pre-wrap;overflow-wrap:anywhere}
 .total{text-align:right;font-size:24px;font-weight:800;margin-top:24px}.note{margin-top:36px;font-size:13px;color:#666;border-top:1px solid #ddd;padding-top:16px}
 .actions{margin:20px auto;max-width:760px;text-align:right}.actions button{padding:12px 20px;font-size:16px;cursor:pointer}
 @media print{body{background:#fff}.page{margin:0;max-width:none;padding:20mm}.actions{display:none}}
