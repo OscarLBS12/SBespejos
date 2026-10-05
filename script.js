@@ -921,3 +921,137 @@ function resetSecurity() {
     localStorage.removeItem('mirrorCurrentUser');
     alert('Seguridad restablecida. Crea el usuario administrador.');
 }
+
+
+// ===== Cotizaciones =====
+function escapeQuoteHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function nextQuoteFolio() {
+    const current = parseInt(localStorage.getItem('mirrorQuoteFolio') || '0', 10) || 0;
+    const next = current + 1;
+    localStorage.setItem('mirrorQuoteFolio', String(next));
+    return 'COT-' + String(next).padStart(4, '0');
+}
+
+function createQuote() {
+    const nombre = document.getElementById('quote-client-name')?.value.trim() || '';
+    const telefono = document.getElementById('quote-client-phone')?.value.trim() || '';
+    const direccion = document.getElementById('quote-client-address')?.value.trim() || '';
+
+    if (!nombre) {
+        alert('Ingresa el nombre del cliente antes de crear la cotización.');
+        document.getElementById('quote-client-name')?.focus();
+        return;
+    }
+
+    const result = document.getElementById('result');
+    if (!result || result.classList.contains('hidden')) {
+        alert('Primero calcula el costo del espejo.');
+        return;
+    }
+
+    const width = parseFloat(document.getElementById('width')?.value || '0') || 0;
+    const height = parseFloat(document.getElementById('height')?.value || '0') || 0;
+    const thickness = document.getElementById('thickness')?.value || '';
+    const baseSelect = document.getElementById('base');
+    const baseLabel = baseSelect?.options[baseSelect.selectedIndex]?.text || '';
+    const ledCount = parseInt(document.getElementById('led-count')?.value || '0', 10) || 0;
+    const sellPrice = parseFloat(document.getElementById('sell-price')?.textContent || '0') || 0;
+    const cfg = getConfig();
+
+    const extras = [];
+    if (document.getElementById('extra-arenado')?.checked) extras.push(cfg.labels.extras.arenado);
+    if (document.getElementById('extra-canto')?.checked) extras.push(cfg.labels.extras.canto_pulido);
+    if (document.getElementById('extra-biselado')?.checked) extras.push(cfg.labels.extras.biselado);
+    if (document.getElementById('extra-marco')?.checked) extras.push(cfg.labels.extras.marco);
+
+    const folio = nextQuoteFolio();
+    const now = new Date();
+    const fecha = now.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    const descripcion = [
+        'Espejo ' + width + ' x ' + height + ' cm',
+        thickness + ' mm',
+        baseLabel,
+        ledCount > 0 ? ledCount + ' tira(s) LED' : '',
+        extras.length ? 'Extras: ' + extras.join(', ') : ''
+    ].filter(Boolean).join(' · ');
+
+    const clients = getClients();
+    clients.push({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2),
+        nombre,
+        telefono,
+        direccion,
+        descripcion: folio + ' — ' + descripcion,
+        costo: sellPrice,
+        anticipo: 0,
+        adeudo: sellPrice,
+        pagado: false,
+        cotizacion: true,
+        folio,
+        fecha: now.toISOString()
+    });
+    setClients(clients);
+
+    const quoteWindow = window.open('', '_blank');
+    if (!quoteWindow) {
+        alert('El navegador bloqueó la ventana de la cotización. Permite ventanas emergentes e inténtalo de nuevo.');
+        return;
+    }
+
+    const money = sellPrice.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    quoteWindow.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeQuoteHtml(folio)} - SB Espejos</title>
+<style>
+body{font-family:Arial,sans-serif;color:#222;margin:0;background:#f2f2f2}
+.page{max-width:760px;margin:24px auto;background:#fff;padding:44px;box-sizing:border-box}
+.header{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #111;padding-bottom:18px;margin-bottom:28px}
+.brand{font-size:28px;font-weight:800;letter-spacing:1px}.muted{color:#666;font-size:14px}
+h1{font-size:22px;margin:0 0 6px}.client{background:#f7f7f7;padding:18px;margin-bottom:24px}
+table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#f5f5f5}
+.total{text-align:right;font-size:24px;font-weight:800;margin-top:24px}.note{margin-top:36px;font-size:13px;color:#666;border-top:1px solid #ddd;padding-top:16px}
+.actions{margin:20px auto;max-width:760px;text-align:right}.actions button{padding:12px 20px;font-size:16px;cursor:pointer}
+@media print{body{background:#fff}.page{margin:0;max-width:none;padding:20mm}.actions{display:none}}
+</style>
+</head>
+<body>
+<div class="actions"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
+<div class="page">
+    <div class="header">
+        <div><div class="brand">SB ESPEJOS</div><div class="muted">Cotización comercial</div></div>
+        <div><h1>${escapeQuoteHtml(folio)}</h1><div class="muted">${escapeQuoteHtml(fecha)}</div></div>
+    </div>
+    <div class="client">
+        <strong>Cliente:</strong> ${escapeQuoteHtml(nombre)}<br>
+        ${telefono ? '<strong>Teléfono:</strong> ' + escapeQuoteHtml(telefono) + '<br>' : ''}
+        ${direccion ? '<strong>Dirección:</strong> ' + escapeQuoteHtml(direccion) : ''}
+    </div>
+    <table>
+        <thead><tr><th>Concepto</th><th>Detalle</th></tr></thead>
+        <tbody>
+            <tr><td>Medidas</td><td>${width} × ${height} cm</td></tr>
+            <tr><td>Espesor</td><td>${escapeQuoteHtml(thickness)} mm</td></tr>
+            <tr><td>Base</td><td>${escapeQuoteHtml(baseLabel)}</td></tr>
+            <tr><td>LED</td><td>${ledCount > 0 ? ledCount + ' tira(s)' : 'Sin LED'}</td></tr>
+            <tr><td>Extras</td><td>${extras.length ? escapeQuoteHtml(extras.join(', ')) : 'Sin extras'}</td></tr>
+        </tbody>
+    </table>
+    <div class="total">TOTAL: $${money} MXN</div>
+    <div class="note">Esta cotización corresponde a las especificaciones indicadas y está sujeta a confirmación de disponibilidad y condiciones de instalación. Los costos internos de fabricación no forman parte de este documento.</div>
+</div>
+</body>
+</html>`);
+    quoteWindow.document.close();
+    quoteWindow.focus();
+}
