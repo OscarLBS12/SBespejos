@@ -989,6 +989,33 @@ function nextQuoteFolio() {
 }
 
 let quoteItems = [];
+let quoteDiscountPercent = 0;
+
+function quoteTotals(items, percent) {
+    const subtotalCents = items.reduce((sum, item) => sum + Math.round(item.importe * 100), 0);
+    const discountCents = Math.round(subtotalCents * percent / 100);
+    const taxableCents = subtotalCents - discountCents;
+    const taxCents = Math.round(taxableCents * 0.16);
+    return {
+        subtotal: subtotalCents / 100, descuentoPorcentaje: percent,
+        descuento: discountCents / 100, subtotalConDescuento: taxableCents / 100,
+        ivaPorcentaje: 16, iva: taxCents / 100, total: (taxableCents + taxCents) / 100
+    };
+}
+
+function applyQuoteDiscount() {
+    const raw = document.getElementById('quote-discount-percent')?.value.trim() || '0';
+    const percent = Number(raw.replace(',', '.'));
+    if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        alert('El descuento debe ser un porcentaje entre 0 y 100.');
+        return false;
+    }
+    quoteDiscountPercent = percent;
+    renderQuoteItems();
+    return true;
+}
+
+
 
 function quoteMoney(value) {
     return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1068,7 +1095,11 @@ function renderQuoteItems() {
         row.appendChild(cell);
         tbody.appendChild(row);
     });
-    document.getElementById('quote-items-total').textContent = quoteMoney(quoteItems.reduce((total, item) => total + Math.round(item.importe * 100), 0) / 100);
+    const totals = quoteTotals(quoteItems, quoteDiscountPercent);
+    document.getElementById('quote-items-total').textContent = quoteMoney(totals.total);
+    document.getElementById('quote-items-subtotal').textContent = quoteMoney(totals.subtotal);
+    document.getElementById('quote-items-discount').textContent = quoteMoney(totals.descuento);
+    document.getElementById('quote-items-iva').textContent = quoteMoney(totals.iva);
     document.getElementById('quote-draft').classList.toggle('hidden', !quoteItems.length);
 }
 
@@ -1085,8 +1116,10 @@ function createQuote() {
         alert('Agrega al menos un espejo a la cotización.');
         return;
     }
+    if (!applyQuoteDiscount()) return;
     const items = quoteItems.map(item => ({ ...item, especificaciones: { ...item.especificaciones, extras: [...item.especificaciones.extras] } }));
-    const total = items.reduce((sum, item) => sum + Math.round(item.importe * 100), 0) / 100;
+    const resumen = quoteTotals(items, quoteDiscountPercent);
+    const total = resumen.total;
     const quoteWindow = window.open('', '_blank');
     if (!quoteWindow) {
         alert('Permite ventanas emergentes para abrir la cotización.');
@@ -1098,13 +1131,16 @@ function createQuote() {
         nombre, telefono, direccion,
         descripcion: folio + ' — ' + items.map(item => item.cantidad + ' × ' + item.descripcion).join('; '),
         costo: total, anticipo: 0, adeudo: total, pagado: false,
-        cotizacion: true, folio, fecha: new Date().toISOString(), partidas: items
+        cotizacion: true, folio, fecha: new Date().toISOString(), partidas: items, resumen
     };
     const clients = getClients();
     clients.push(quote);
     setClients(clients);
     openSavedQuote(quote, quoteWindow);
     quoteItems = [];
+    quoteDiscountPercent = 0;
+    const discountInput = document.getElementById('quote-discount-percent');
+    if (discountInput) discountInput.value = '0';
     renderQuoteItems();
 }
 
@@ -1150,6 +1186,12 @@ function openSavedQuote(quote, existingWindow) {
         return;
     }
 
+    const resumen = quote.resumen;
+    const totalsHtml = resumen ? '<div class="totals-breakdown">' +
+        '<div>Subtotal: $' + quoteMoney(resumen.subtotal) + ' MXN</div>' +
+        '<div>Descuento (' + escapeQuoteHtml(resumen.descuentoPorcentaje) + '%): −$' + quoteMoney(resumen.descuento) + ' MXN</div>' +
+        '<div>Subtotal con descuento: $' + quoteMoney(resumen.subtotalConDescuento) + ' MXN</div>' +
+        '<div>IVA (16%): $' + quoteMoney(resumen.iva) + ' MXN</div></div>' : '';
     const money = sellPrice.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     quoteWindow.document.write(`<!DOCTYPE html>
 <html lang="es">
@@ -1164,7 +1206,7 @@ body{font-family:Arial,sans-serif;color:#222;margin:0;background:#f2f2f2}
 .brand{max-width:260px}.brand img{display:block;width:100%;height:auto}.contact{font-size:13px;line-height:1.6;margin-top:10px}.conditions{margin-top:24px;padding:16px;border:1px solid #cbdced;border-left:4px solid #0756af;line-height:1.7;font-size:14px}.quote-meta{text-align:right;min-width:170px}.muted{color:#666;font-size:14px}
 h1{font-size:22px;margin:0 0 6px}.client{background:#f7f7f7;padding:18px;margin-bottom:24px}
 table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#edf4fc;color:#074780}td{white-space:pre-wrap;overflow-wrap:anywhere}
-.total{text-align:right;font-size:24px;font-weight:800;margin-top:24px}.note{margin-top:36px;font-size:13px;color:#666;border-top:1px solid #ddd;padding-top:16px}
+.totals-breakdown{text-align:right;line-height:1.8;font-size:14px;margin-top:20px}.total{text-align:right;font-size:24px;font-weight:800;margin-top:24px}.note{margin-top:36px;font-size:13px;color:#666;border-top:1px solid #ddd;padding-top:16px}
 .actions{margin:20px auto;max-width:760px;text-align:right}.actions button{padding:12px 20px;font-size:16px;cursor:pointer}
 @media(max-width:600px){.page{padding:20px}.header{flex-wrap:wrap}.quote-meta{text-align:left}th,td{padding:8px;font-size:12px}}\n@media print{thead{display:table-header-group}tr,.conditions,.header,.client{break-inside:avoid}body{background:#fff}.page{margin:0;max-width:none;padding:20mm}.actions{display:none}}
 </style>
@@ -1173,7 +1215,7 @@ table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;pa
 <div class="actions"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
 <div class="page">
     <div class="header">
-        <div><div class="brand"><img src="${escapeQuoteHtml(logoUrl)}" alt="Espejos San Benito — desde 2019"></div><div class="contact"><strong>Teléfonos:</strong> 6621784045 · 6623975776</div></div>
+        <div><div class="brand"><img src="${escapeQuoteHtml(logoUrl)}" alt="Espejos San Benito — desde 2019"></div><div class="contact"><strong>Dirección:</strong> Naranjo 39, Esq. Tamaulipas, San Benito, Hermosillo, Sonora.<br><strong>Teléfonos:</strong> 6621784045 · 6623975776</div></div>
         <div class="quote-meta"><div class="muted">COTIZACIÓN</div><h1>${escapeQuoteHtml(folio)}</h1><div class="muted">${escapeQuoteHtml(fecha)}</div></div>
     </div>
     <div class="client">
@@ -1187,10 +1229,11 @@ table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;pa
             ${detailsHtml}
         </tbody>
     </table>
+    ${totalsHtml}
     <div class="total">TOTAL: $${money} MXN</div>
     <div class="conditions">
         <div><strong>Vigencia:</strong> 15 días a partir de la fecha de emisión.${expiryText ? ' Válida hasta el ' + escapeQuoteHtml(expiryText) + '.' : ''}</div>
-        <div><strong>Anticipo obligatorio del 50% para iniciar el trabajo:</strong> $${quoteMoney(deposit)} MXN.</div>
+        <div><strong>Anticipo para iniciar el trabajo del 50%:</strong> $${quoteMoney(deposit)} MXN.</div>
     </div>
     <div class="note">Esta cotización corresponde a las especificaciones indicadas y está sujeta a confirmación de disponibilidad y condiciones de instalación.</div>
 </div>
