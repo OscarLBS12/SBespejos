@@ -104,6 +104,14 @@
                     <thead><tr><th>Cantidad</th><th>Descripción</th><th>Precio unitario</th><th>Importe</th><th></th></tr></thead>
                     <tbody id="quote-items-tbody"></tbody>
                 </table></div>
+                <div class="form-group">
+                    <label for="quote-discount-percent">Descuento (%):</label>
+                    <input type="number" id="quote-discount-percent" min="0" max="100" step="0.01" value="0">
+                    <button type="button" onclick="applyQuoteDiscount()">Aplicar descuento</button>
+                </div>
+                <p>Subtotal: $<span id="quote-items-subtotal">0.00</span> MXN</p>
+                <p>Descuento: −$<span id="quote-items-discount">0.00</span> MXN</p>
+                <p>IVA (16%): $<span id="quote-items-iva">0.00</span> MXN</p>
                 <p><strong>Total: $<span id="quote-items-total">0.00</span> MXN</strong></p>
                 <button type="button" id="create-quote-btn" class="quote-btn" onclick="createQuote()">Crear cotización</button>
             </section>
