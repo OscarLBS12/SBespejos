@@ -519,6 +519,7 @@ function renderClients() {
             addAction('Agregar anticipo', '#0d6efd', addClientAdvance);
             addAction('Pago completo', '#198754', payInFull);
         }
+        addAction('Reimprimir cotización', '#6c757d', reprintQuote);
         addAction('Eliminar', '#dc3545', deleteClient);
         tr.appendChild(tdNom);
         tr.appendChild(tdTel);
@@ -1028,7 +1029,7 @@ function createQuote() {
     ].filter(Boolean).join(' · ');
 
     const clients = getClients();
-    clients.push({
+    const quote = {
         id: Date.now() + '-' + Math.random().toString(36).slice(2),
         nombre,
         telefono,
@@ -1040,9 +1041,44 @@ function createQuote() {
         pagado: false,
         cotizacion: true,
         folio,
-        fecha: now.toISOString()
-    });
+        fecha: now.toISOString(),
+        especificaciones: { width, height, thickness, baseLabel, ledCount, extras: [...extras] }
+    };
+    clients.push(quote);
     setClients(clients);
+    openSavedQuote(quote);
+}
+
+function reprintQuote(id) {
+    const quote = getClients().find(item => item.id === id);
+    if (!quote) {
+        alert('No se encontró la cotización.');
+        return;
+    }
+    openSavedQuote(quote);
+}
+
+function openSavedQuote(quote) {
+    const { nombre, telefono, direccion } = quote;
+    const folio = quote.folio || 'Cotización';
+    const date = quote.fecha ? new Date(quote.fecha) : null;
+    const fecha = date && !isNaN(date.getTime())
+        ? date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'Fecha original no registrada';
+    const sellPrice = Number(quote.costo || 0);
+    const specs = quote.especificaciones;
+    const detailRows = specs
+        ? [
+            ['Medidas', specs.width + ' × ' + specs.height + ' cm'],
+            ['Espesor', specs.thickness + ' mm'],
+            ['Base', specs.baseLabel],
+            ['LED', specs.ledCount > 0 ? specs.ledCount + ' tira(s)' : 'Sin LED'],
+            ['Extras', specs.extras?.length ? specs.extras.join(', ') : 'Sin extras']
+        ]
+        : [['Descripción', quote.descripcion || 'Sin descripción']];
+    const detailsHtml = detailRows.map(([label, value]) =>
+        '<tr><td>' + escapeQuoteHtml(label) + '</td><td>' + escapeQuoteHtml(value) + '</td></tr>'
+    ).join('');
 
     const quoteWindow = window.open('', '_blank');
     if (!quoteWindow) {
@@ -1084,11 +1120,7 @@ table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;pa
     <table>
         <thead><tr><th>Concepto</th><th>Detalle</th></tr></thead>
         <tbody>
-            <tr><td>Medidas</td><td>${width} × ${height} cm</td></tr>
-            <tr><td>Espesor</td><td>${escapeQuoteHtml(thickness)} mm</td></tr>
-            <tr><td>Base</td><td>${escapeQuoteHtml(baseLabel)}</td></tr>
-            <tr><td>LED</td><td>${ledCount > 0 ? ledCount + ' tira(s)' : 'Sin LED'}</td></tr>
-            <tr><td>Extras</td><td>${extras.length ? escapeQuoteHtml(extras.join(', ')) : 'Sin extras'}</td></tr>
+            ${detailsHtml}
         </tbody>
     </table>
     <div class="total">TOTAL: $${money} MXN</div>
