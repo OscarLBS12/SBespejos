@@ -1125,6 +1125,11 @@ function openSavedQuote(quote, existingWindow) {
         ? date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })
         : 'Fecha original no registrada';
     const sellPrice = Number(quote.costo || 0);
+    const logoUrl = new URL('assets/logo-san-benito.svg', window.location.href).href;
+    const deposit = Math.round(sellPrice * 100 / 2) / 100;
+    const expiry = date && !isNaN(date.getTime()) ? new Date(date.getTime()) : null;
+    if (expiry) expiry.setDate(expiry.getDate() + 15);
+    const expiryText = expiry ? expiry.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
     const specs = quote.especificaciones;
     const legacyDescription = specs ? [
         'Espejo ' + specs.width + ' × ' + specs.height + ' cm',
@@ -1155,21 +1160,21 @@ function openSavedQuote(quote, existingWindow) {
 <style>
 body{font-family:Arial,sans-serif;color:#222;margin:0;background:#f2f2f2}
 .page{max-width:760px;margin:24px auto;background:#fff;padding:44px;box-sizing:border-box}
-.header{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #111;padding-bottom:18px;margin-bottom:28px}
-.brand{font-size:28px;font-weight:800;letter-spacing:1px}.muted{color:#666;font-size:14px}
+.header{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #0756af;padding-bottom:18px;margin-bottom:28px}
+.brand{max-width:260px}.brand img{display:block;width:100%;height:auto}.contact{font-size:13px;line-height:1.6;margin-top:10px}.conditions{margin-top:24px;padding:16px;border:1px solid #cbdced;border-left:4px solid #0756af;line-height:1.7;font-size:14px}.quote-meta{text-align:right;min-width:170px}.muted{color:#666;font-size:14px}
 h1{font-size:22px;margin:0 0 6px}.client{background:#f7f7f7;padding:18px;margin-bottom:24px}
-table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#f5f5f5}td{white-space:pre-wrap;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid #ddd}th{background:#edf4fc;color:#074780}td{white-space:pre-wrap;overflow-wrap:anywhere}
 .total{text-align:right;font-size:24px;font-weight:800;margin-top:24px}.note{margin-top:36px;font-size:13px;color:#666;border-top:1px solid #ddd;padding-top:16px}
 .actions{margin:20px auto;max-width:760px;text-align:right}.actions button{padding:12px 20px;font-size:16px;cursor:pointer}
-@media print{body{background:#fff}.page{margin:0;max-width:none;padding:20mm}.actions{display:none}}
+@media(max-width:600px){.page{padding:20px}.header{flex-wrap:wrap}.quote-meta{text-align:left}th,td{padding:8px;font-size:12px}}\n@media print{thead{display:table-header-group}tr,.conditions,.header,.client{break-inside:avoid}body{background:#fff}.page{margin:0;max-width:none;padding:20mm}.actions{display:none}}
 </style>
 </head>
 <body>
 <div class="actions"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
 <div class="page">
     <div class="header">
-        <div><div class="brand">SB ESPEJOS</div><div class="muted">Cotización comercial</div></div>
-        <div><h1>${escapeQuoteHtml(folio)}</h1><div class="muted">${escapeQuoteHtml(fecha)}</div></div>
+        <div><div class="brand"><img src="${escapeQuoteHtml(logoUrl)}" alt="Espejos San Benito — desde 2019"></div><div class="contact"><strong>Teléfonos:</strong> 6621784045 · 6623975776</div></div>
+        <div class="quote-meta"><div class="muted">COTIZACIÓN</div><h1>${escapeQuoteHtml(folio)}</h1><div class="muted">${escapeQuoteHtml(fecha)}</div></div>
     </div>
     <div class="client">
         <strong>Cliente:</strong> ${escapeQuoteHtml(nombre)}<br>
@@ -1183,7 +1188,11 @@ table{width:100%;border-collapse:collapse;margin:18px 0}th,td{text-align:left;pa
         </tbody>
     </table>
     <div class="total">TOTAL: $${money} MXN</div>
-    <div class="note">Esta cotización corresponde a las especificaciones indicadas y está sujeta a confirmación de disponibilidad y condiciones de instalación. Los costos internos de fabricación no forman parte de este documento.</div>
+    <div class="conditions">
+        <div><strong>Vigencia:</strong> 15 días a partir de la fecha de emisión.${expiryText ? ' Válida hasta el ' + escapeQuoteHtml(expiryText) + '.' : ''}</div>
+        <div><strong>Anticipo obligatorio del 50% para iniciar el trabajo:</strong> $${quoteMoney(deposit)} MXN.</div>
+    </div>
+    <div class="note">Esta cotización corresponde a las especificaciones indicadas y está sujeta a confirmación de disponibilidad y condiciones de instalación.</div>
 </div>
 </body>
 </html>`);
